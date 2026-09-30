@@ -1,0 +1,22 @@
+search-path = ["."]
+site-package-path = [
+    "C:/Users/mm592/.pyenv/pyenv-win/versions/3.9.13/lib/site-packages"
+]
+python_version = "3.9"
+enable-fallback-search-path = true
+
+replace_imports_with_any = [
+    "Crypto",
+    "Crypto.Cipher",
+    "Crypto.Protocol.KDF",
+    "Crypto.Random",
+    "bs4",
+    "rich",
+    "rich.console",
+    "rich.table",
+    "rich.panel",
+    "streamlit"
+]
+
+[errors]
+missing-import = false

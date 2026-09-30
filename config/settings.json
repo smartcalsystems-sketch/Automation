@@ -1,0 +1,44 @@
+{
+    "ecosystem": "hybrid",
+    "auth_mode": "direct",
+    "trigger_mode": "all_unread",
+    "keywords": [
+        "meeting",
+        "schedule",
+        "call",
+        "sync",
+        "demo",
+        "discuss",
+        "interview",
+        "catch up",
+        "appointment",
+        "calendar"
+    ],
+    "auto_send_drafts": true,
+    "poll_interval_seconds": 60,
+    "default_meeting_duration_minutes": 45,
+    "default_timezone": "IST",
+    "google": {
+        "enabled": true,
+        "imap_server": "imap.gmail.com",
+        "imap_port": 993,
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "calendar_enabled": true
+    },
+    "m365": {
+        "enabled": true,
+        "imap_server": "outlook.office365.com",
+        "imap_port": 993,
+        "smtp_server": "smtp.office365.com",
+        "smtp_port": 587,
+        "calendar_enabled": true,
+        "teams_integration": true
+    },
+    "rdp": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 3389,
+        "browser_profile_dir": ""
+    }
+}

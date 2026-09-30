@@ -1,0 +1,8 @@
+config/credentials.json
+config/consent_log.json
+config/unsubscribed.json
+automation_audit.json
+__pycache__/
+*.pyc
+.env
+.vscode/
