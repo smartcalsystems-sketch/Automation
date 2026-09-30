@@ -25,6 +25,14 @@ class TestAutomationAgent(unittest.TestCase):
     def setUp(self):
         if TEST_VAULT_FILE.exists():
             TEST_VAULT_FILE.unlink()
+        from config.settings import UNSUBSCRIBED_FILE
+        if UNSUBSCRIBED_FILE.exists():
+            import json
+            try:
+                with open(UNSUBSCRIBED_FILE, "w", encoding="utf-8") as f:
+                    json.dump([], f)
+            except Exception:
+                pass
         self.vault = CredentialVault(vault_file=TEST_VAULT_FILE)
         self.extractor = EmailEntityExtractor(default_tz="UTC")
         self.drafter = ContextualEmailDrafter()
@@ -32,6 +40,14 @@ class TestAutomationAgent(unittest.TestCase):
     def tearDown(self):
         if TEST_VAULT_FILE.exists():
             TEST_VAULT_FILE.unlink()
+        from config.settings import UNSUBSCRIBED_FILE
+        if UNSUBSCRIBED_FILE.exists():
+            import json
+            try:
+                with open(UNSUBSCRIBED_FILE, "w", encoding="utf-8") as f:
+                    json.dump([], f)
+            except Exception:
+                pass
 
     def test_vault_encryption_and_decryption(self):
         """Verify credential storage obfuscation and recovery."""
@@ -1070,6 +1086,82 @@ class TestAutomationAgent(unittest.TestCase):
             checkout = self.drafter.generate_checkout_email(plan, "My Plan")
             self.assertIn(LEGAL_NOTICE_FOOTER, checkout["body"])
             self.assertIn("LEGAL TERMS, PRIVACY &amp; LIABILITY NOTICE", checkout["html_body"])
+
+    def test_simulation_demo_email_zero_call_funnel(self):
+        """Zero-Call Funnel 1: Simulation demo preview with explicit simulation disclaimer and UPI QR."""
+        demo_email = self.drafter.generate_simulation_demo_email(
+            original_subject="Can we schedule a demo call?",
+            sender_name="Vikram Patel",
+            sender_email="vikram@enterprise.in"
+        )
+        self.assertIn("⚡ Automated 60-Second Simulation Preview (No Sales Call Required)", demo_email["subject"])
+        self.assertIn("[SIMULATION PREVIEW ONLY — No live call is scheduled with our team]", demo_email["body"])
+        self.assertIn("IST", demo_email["body"])
+        self.assertIn("PLAN 1", demo_email["body"])
+        self.assertIn("PLAN 2", demo_email["body"])
+        self.assertIn("PLAN 3", demo_email["body"])
+        self.assertIn("7483218482@ibl", demo_email["body"])
+        
+        # HTML validation
+        html = demo_email["html_body"]
+        self.assertIn("[SIMULATION PREVIEW ONLY — No live call is scheduled with our team]", html)
+        self.assertIn("STEP 1", html)
+        self.assertIn("STEP 2", html)
+        self.assertIn("STEP 3", html)
+        self.assertIn("STEP 4", html)
+        self.assertIn("7483218482@ibl", html)
+        self.assertIn("create-qr-code", html)
+
+    def test_zero_call_sandbox_mode_in_workflow_manager(self):
+        """Zero-Call Funnel 2: WorkflowManager activates sandbox preview without real human calendar booking."""
+        manager = AutomationWorkflowManager(force_simulation=True)
+        # Create mock demo message
+        demo_msg = EmailMessage(
+            id="demo_test_123",
+            source_ecosystem="google",
+            sender_name="Prospect User",
+            sender_email="prospect@company.com",
+            subject="DEMO: Want to see SmartCal live",
+            date_received=datetime.utcnow(),
+            body_text="Hi SmartCal, could you show me a demo tomorrow at 3 PM?"
+        )
+        entry = list(manager.account_connectors.values())[0]
+        res = manager._process_single_email(
+            email_msg=demo_msg,
+            connector=entry["connector"],
+            scheduler=UnifiedCalendarScheduler(entry["connector"]),
+            drafter=self.drafter,
+            eco_name="google",
+            account_meta={"id": "acc_smartcal_test", "label": "SmartCal Systems <smartcal.systems@gmail.com>", "email": "smartcal.systems@gmail.com"},
+            auto_send=False
+        )
+        self.assertTrue(res["calendar_result"]["is_simulation_only"])
+        self.assertIn("[SIMULATION PREVIEW ONLY]", res["calendar_result"]["title"])
+        self.assertIn("Automated 60-Second Simulation Preview (No Sales Call Required)", res["draft_content"]["subject"])
+
+    def test_promo_video_html_and_dashboard_header_padding(self):
+        """Zero-Call Funnel 3: Standalone promo video file and dashboard header padding."""
+        promo_path = Path(__file__).resolve().parent.parent / "ui" / "promo_video.html"
+        self.assertTrue(promo_path.exists())
+        content = promo_path.read_text(encoding="utf-8")
+        self.assertIn("SmartCal Systems • 60-Second Engine Showcase", content)
+        self.assertIn("Scene 1", content)
+        self.assertIn("Scene 2", content)
+        self.assertIn("Scene 3", content)
+        self.assertIn("Scene 4", content)
+        self.assertIn("7483218482@ibl", content)
+
+        # Dashboard padding check
+        dash_path = Path(__file__).resolve().parent.parent / "ui" / "dashboard.py"
+        dash_content = dash_path.read_text(encoding="utf-8")
+        self.assertIn("padding-top: 3rem !important;", dash_content)
+        self.assertIn("Operator Login", dash_content)
+
+    def test_advertise_pitch_zero_call_funnel(self):
+        """Zero-Call Funnel 4: main.py --advertise pitches animated demo and zero sales calls."""
+        main_path = Path(__file__).resolve().parent.parent / "main.py"
+        main_content = main_path.read_text(encoding="utf-8")
+        self.assertIn("Watch our 60-second animated demo or reply 'DEMO' to receive an instant automated simulation in your inbox—zero sales calls required.", main_content)
 
 
 if __name__ == "__main__":

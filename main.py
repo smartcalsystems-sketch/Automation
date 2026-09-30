@@ -57,13 +57,16 @@ def send_promotional_advertisement(target_emails: List[str]):
 
     sender_email = sender_account["email"]
     app_password = sender_account["app_password"]
-    subject = "🚀 24/7 Inbox-to-Calendar Automation in 60 Seconds — SmartCal Systems Demo"
+    subject = "🚀 Watch 60-Second Animated Demo — SmartCal Systems Autonomous Scheduling (Zero Sales Calls Required)"
     
     pitch_body = f"""Hi there,
 
 Tired of manually managing scheduling emails, calendar conflicts, and missing client replies?
 
-SmartCal Systems is an autonomous email triage and calendar scheduling engine that turns every inbound inquiry into a booked Google Meet or Microsoft Teams meeting in under 60 seconds.
+SmartCal Systems is an autonomous email triage and calendar scheduling engine that turns every inbound inquiry into a booked Google Meet or Microsoft Teams meeting in under 60 seconds with zero human effort.
+
+🎬 100% Zero-Call Self-Serve Funnel:
+Watch our 60-second animated demo or reply 'DEMO' to receive an instant automated simulation in your inbox—zero sales calls required.
 
 🚀 How SmartCal Systems Works (24/7 Inbox-to-Calendar Automation in 60 Seconds):
   • 60-Second Email Triage: Automatically reads, categorizes, and logs incoming client emails and deliverables with zero latency.
@@ -71,12 +74,13 @@ SmartCal Systems is an autonomous email triage and calendar scheduling engine th
   • 24/7 Follow-Up Loops: Staged 48-hour follow-up chasers, automated Minutes of Meeting (MoM), and live no-show recovery.
 
 💼 Transparent Pricing Plans:
-  • Plan 1: 48-Hour Free Live Trial (₹0)
-  • Plan 2: Solo Inbox Setup (₹2,999 One-Time)
-  • Plan 3: Multi-Account Agency Pro — Up to 5 Inboxes + Follow-Up Chasers + Invoice Reminders (₹6,999 One-Time or ₹1,499/month)
+  • Plan 1: 48-Hour Free Live Trial (₹0) — Test on 1 inbox with zero credit card
+  • Plan 2: Solo Inbox Setup (₹2,999 One-Time) — Permanent lifetime 1-inbox setup via UPI QR 7483218482@ibl
+  • Plan 3: Multi-Account Agency Pro (₹6,999 One-Time or ₹1,499/month) — Up to 5 inboxes + follow-up chasers + invoice reminders
 
-👉 Want to see it in action?
-Reply to this email with "DEMO" to test our live AI engine in 60 seconds, or reply with "PLAN 1", "PLAN 2", or "PLAN 3" to activate SmartCal on your inbox today!
+👉 Ready to test it right now?
+Watch our 60-second animated demo or reply 'DEMO' to receive an instant automated simulation in your inbox—zero sales calls required.
+Or reply directly to this email with "PLAN 1", "PLAN 2", or "PLAN 3" to activate SmartCal autonomously in 2 minutes!
 
 Best regards,
 SmartCal Systems

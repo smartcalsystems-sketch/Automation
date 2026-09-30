@@ -51,6 +51,16 @@ class ContextualEmailDrafter:
         if selected_plan:
             return self.generate_checkout_email(selected_plan, original_subject)
 
+        # Check for Zero-Call Simulation Demo Request
+        if extracted_data.get("is_demo_simulation") or extracted_data.get("email_type") == "demo_simulation" or extracted_data.get("is_demo_request"):
+            return self.generate_simulation_demo_email(
+                original_subject=original_subject,
+                sender_name=extracted_data.get("sender_name", "there"),
+                sender_email=extracted_data.get("sender_email", ""),
+                proposed_datetime=extracted_data.get("proposed_datetime"),
+                calendar_result=calendar_result
+            )
+
         sender_name = extracted_data.get("sender_name", "there")
         first_name = sender_name.split()[0] if sender_name else "there"
         action_items: List[str] = extracted_data.get("action_items", [])
@@ -614,4 +624,165 @@ class ContextualEmailDrafter:
         return {
             "subject": clean_subj,
             "body": "\n".join(lines)
+        }
+
+    def generate_simulation_demo_email(
+        self,
+        original_subject: str,
+        sender_name: str,
+        sender_email: str,
+        proposed_datetime: Optional[datetime] = None,
+        calendar_result: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, str]:
+        """Generate an instant 60-second automated simulation preview email with zero sales calls required."""
+        clean_subj = original_subject if original_subject.startswith("Re:") else f"Re: {original_subject}"
+        subject = f"{clean_subj} - ⚡ Automated 60-Second Simulation Preview (No Sales Call Required)"
+        
+        first_name = sender_name.split()[0] if sender_name else "there"
+        now = datetime.utcnow()
+        if proposed_datetime:
+            slot_str = proposed_datetime.strftime("%A, %B %d at %I:%M %p IST")
+        else:
+            slot_str = (now + timedelta(days=1)).strftime("%A, %B %d at 03:00 PM IST")
+
+        plain_body = (
+            f"Hi {first_name},\n\n"
+            "Thank you for requesting a live demonstration of SmartCal Systems!\n\n"
+            "--------------------------------------------------\n"
+            "⚡ AUTOMATED 60-SECOND SIMULATION PREVIEW (NO SALES CALL REQUIRED)\n"
+            "[SIMULATION PREVIEW ONLY — No live call is scheduled with our team]\n"
+            "--------------------------------------------------\n\n"
+            "Here is how SmartCal Systems autonomously triaged your message in real-time:\n"
+            "  • Step 1: Inbound Triage — Message received, natural language parsed in 0.4 seconds.\n"
+            "  • Step 2: Multi-Calendar Sync — Evaluated availability across Google Calendar & Outlook 365.\n"
+            f"  • Step 3: Conflict-Free Slot Locked — Provisioned simulated hold: {slot_str}.\n"
+            "  • Step 4: Conference Link Provisioned — https://meet.google.com/sim-smartcal-preview [SIMULATION PREVIEW ONLY]\n"
+            "  • Step 5: Autonomous Dispatch — Contextual confirmation staged & sent with 0 human typing.\n\n"
+            "🚀 ZERO SALES CALLS NEEDED — Instant Self-Serve Activation in 2 Minutes:\n"
+            "  • Reply 'PLAN 1' -> 48-Hour Free Live Trial (₹0, zero credit card)\n"
+            "  • Reply 'PLAN 2' -> Solo Inbox Setup (₹2,999 One-Time via UPI QR 7483218482@ibl)\n"
+            "  • Reply 'PLAN 3' -> Multi-Account Agency Pro (₹6,999 One-Time)\n\n"
+            "💳 Direct Corporate UPI Scan-and-Pay:\n"
+            "Billing VPA: 7483218482@ibl (Verified Corporate Signatory Account)\n"
+            "UPI Payment QR: https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=upi://pay?pa=7483218482@ibl%26pn=SmartCal%20Systems%26tn=SmartCal%20License%26am=2999%26cu=INR\n\n"
+            "Reply directly to this email with 'PLAN 1', 'PLAN 2', or 'PLAN 3' to activate your inbox autonomously today!\n\n"
+            "Best regards,\n"
+            "SmartCal Systems Autonomous Engine\n"
+            "Automated Email & Calendar Cloud\n\n"
+            f"{LEGAL_NOTICE_FOOTER}"
+        )
+
+        qr_img_tag = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=upi://pay?pa=7483218482@ibl%26pn=SmartCal%20Systems%26tn=SmartCal%20License%26am=2999%26cu=INR" alt="SmartCal Systems Payment QR" />'
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; color: #f1f5f9; margin: 0; padding: 24px; }}
+  .card {{ max-width: 640px; margin: 0 auto; background: #111827; border-radius: 14px; border: 1px solid #1f2937; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+  .header {{ background: linear-gradient(135deg, #1e1b4b 0%, #0b0f19 100%); padding: 30px 24px; text-align: center; border-bottom: 1px solid #1f2937; }}
+  .header h1 {{ margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; }}
+  .header p {{ margin: 6px 0 0 0; font-size: 13px; color: #94a3b8; }}
+  .sim-warning {{ background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 12px 14px; margin: 20px 24px; text-align: center; color: #fca5a5; font-size: 13px; font-weight: 700; }}
+  .content {{ padding: 0 24px 24px 24px; }}
+  .step-card {{ background: #0b0f19; border: 1px solid #1f2937; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }}
+  .step-pill {{ background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #c7d2fe; font-weight: 800; font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }}
+  .step-text {{ font-size: 13px; color: #cbd5e1; line-height: 1.4; }}
+  .pricing-grid {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }}
+  .plan-tile {{ background: #0b0f19; border: 1px solid #334155; border-radius: 8px; padding: 12px 8px; text-align: center; }}
+  .plan-tile.popular {{ border: 2px solid #6366f1; background: linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, #0b0f19 100%); }}
+  .plan-name {{ font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }}
+  .plan-price {{ font-size: 18px; font-weight: 800; color: #ffffff; margin: 4px 0; }}
+  .plan-desc {{ font-size: 11px; color: #94a3b8; }}
+  .qr-box {{ background: #ffffff; color: #0f172a; border-radius: 12px; padding: 18px; text-align: center; margin: 20px 0; }}
+  .qr-box img {{ width: 170px; height: 170px; display: block; margin: 0 auto; }}
+  .vpa-text {{ margin-top: 8px; font-size: 13px; font-weight: 800; color: #1e1b4b; }}
+  .footer {{ padding: 18px 24px; background: #0b0f19; border-top: 1px solid #1f2937; font-size: 12px; color: #64748b; text-align: center; }}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>SmartCal Systems</h1>
+      <p>Autonomous Email &amp; Calendar Engine</p>
+    </div>
+    
+    <div class="sim-warning">
+      ⚡ [SIMULATION PREVIEW ONLY — No live call is scheduled with our team]<br>
+      <span style="font-weight: 400; font-size: 12px; color: #e2e8f0;">You are witnessing our 100% self-serve autonomous triage engine. Zero sales calls required!</span>
+    </div>
+
+    <div class="content">
+      <div style="font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 12px;">
+        Here is how your inquiry was triaged in 0.4 seconds:
+      </div>
+
+      <div class="step-card">
+        <div class="step-pill">STEP 1</div>
+        <div class="step-text"><strong>Inbound NLP Triage (0.4s):</strong> Message extracted, intent recognized, and urgency categorized.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-pill">STEP 2</div>
+        <div class="step-text"><strong>Cross-Calendar Matrix (0.2s):</strong> Google Calendar &amp; Outlook 365 synced simultaneously to eliminate double-booking.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-pill">STEP 3</div>
+        <div class="step-text"><strong>Simulation Slot Provisioned:</strong> <code>{slot_str}</code> (Meet: <code>https://meet.google.com/sim-smartcal-preview</code> — <em>Preview Only</em>).</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-pill">STEP 4</div>
+        <div class="step-text"><strong>Instant Dispatch (&lt; 60s):</strong> Contextual confirmation staged &amp; auto-sent via SMTP with zero human typing.</div>
+      </div>
+
+      <div style="margin-top: 24px; font-size: 14px; font-weight: 700; color: #ffffff; text-align: center;">
+        Ready to Activate Autonomous Scheduling on Your Inbox?
+      </div>
+      <div style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 2px;">
+        Zero phone calls needed. Reply directly to this email with your chosen plan:
+      </div>
+
+      <div class="pricing-grid">
+        <div class="plan-tile">
+          <div class="plan-name">Plan 1: Free Trial</div>
+          <div class="plan-price">₹0</div>
+          <div class="plan-desc">48-Hour Live Trial<br>Reply 'PLAN 1'</div>
+        </div>
+        <div class="plan-tile popular">
+          <div class="plan-name" style="color: #c7d2fe;">Plan 2: Solo Setup</div>
+          <div class="plan-price" style="color: #a5b4fc;">₹2,999</div>
+          <div class="plan-desc" style="color: #cbd5e1;">Lifetime 1 Inbox<br>Reply 'PLAN 2'</div>
+        </div>
+        <div class="plan-tile">
+          <div class="plan-name">Plan 3: Agency Pro</div>
+          <div class="plan-price">₹6,999</div>
+          <div class="plan-desc">Up to 5 Inboxes<br>Reply 'PLAN 3'</div>
+        </div>
+      </div>
+
+      <div class="qr-box">
+        <div style="font-size: 12px; font-weight: 700; color: #4338ca; text-transform: uppercase;">Instant UPI Activation</div>
+        {qr_img_tag}
+        <div class="vpa-text">Billing VPA: 7483218482@ibl</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Google Pay • PhonePe • Paytm • BHIM • CRED</div>
+      </div>
+
+      {LEGAL_NOTICE_HTML}
+    </div>
+
+    <div class="footer">
+      <strong>SmartCal Systems Autonomous Engine</strong><br>
+      Zero-Call Self-Serve Inbox Automation
+    </div>
+  </div>
+</body>
+</html>"""
+
+        return {
+            "subject": subject,
+            "body": plain_body,
+            "html_body": html_body
         }

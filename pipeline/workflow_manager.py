@@ -8,6 +8,7 @@ Implements all 4 advanced pillars:
 5. Pre-Meeting Context Dossiers & Confidence-Based Approval Routing
 """
 import logging
+import re
 import requests
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
@@ -456,57 +457,87 @@ class AutomationWorkflowManager:
             scheduler.schedule_payment_reminder(inv_info)
             self.audit_logger.log_invoice(inv_info)
 
-        # 7. Calendar Event Creation & VIP Auto-Bump Engine
-        vip_senders = [v.lower() for v in self.settings.get("vip_senders", [])]
-        vip_domains = [d.lower() for d in self.settings.get("vip_domains", [])]
-        sender_lower = email_msg.sender_email.lower()
-        sender_dom = sender_lower.split("@")[-1] if "@" in sender_lower else ""
-        is_vip = (sender_lower in vip_senders) or (sender_dom in vip_domains)
+        # Check if this email is a prospect demo inquiry or email to smartcal.systems@gmail.com (Zero-Call Sandbox Funnel)
+        recipient_acc_email = account_meta.get("email", "").lower()
+        is_smartcal_inbox = "smartcal.systems@gmail.com" in recipient_acc_email or "smartcal" in acc_label.lower()
+        subj_body_lower = f"{email_msg.subject} {email_msg.body_text}".lower()
+        is_demo_inquiry = bool(
+            re.search(r"\b(demo|test drive|live demo)\b", subj_body_lower)
+            or (is_smartcal_inbox and not extracted.get("selected_plan") and not compliance_intent)
+        )
 
-        if extracted.get("is_meeting_request") and extracted.get("proposed_datetime"):
-            if is_vip:
-                # Attempt VIP Auto-Bump over internal meetings
-                bump_res = scheduler.bump_internal_meeting_for_vip(
-                    vip_email=email_msg.sender_email,
-                    vip_name=email_msg.sender_name,
-                    requested_start=extracted["proposed_datetime"],
-                    duration_minutes=extracted.get("duration_minutes", 45)
-                )
-                if bump_res.get("bumped"):
-                    event_scheduled = True
-                    calendar_result = {
-                        "scheduled": True,
-                        "has_conflict": False,
-                        "event": bump_res["vip_event"],
-                        "title": bump_res["vip_event"].title,
-                        "meeting_link": bump_res["vip_event"].meeting_link,
-                        "alternative_slots": [],
-                        "vip_bumped": True
-                    }
-                    self.audit_logger.log_vip_bump({
-                        "vip_email": email_msg.sender_email,
-                        "vip_name": email_msg.sender_name,
-                        "bumped_event": bump_res["bumped_event_title"],
-                        "rescheduled_to": bump_res["rescheduled_slot"]
-                    })
-                elif bump_res.get("scheduled"):
-                    event_scheduled = True
-                    calendar_result = {
-                        "scheduled": True,
-                        "has_conflict": False,
-                        "event": bump_res["event"],
-                        "title": bump_res["event"].title,
-                        "meeting_link": bump_res["event"].meeting_link,
-                        "alternative_slots": []
-                    }
+        if is_demo_inquiry:
+            # ZERO-CALL SANDBOX MODE: Never schedule real calls that require our team to attend.
+            sim_slot = extracted.get("proposed_datetime")
+            if not sim_slot:
+                now_utc = datetime.utcnow()
+                sim_slot = (now_utc + timedelta(days=1)).replace(hour=9, minute=30, second=0, microsecond=0)
+            sim_slot_str = sim_slot.strftime("%A, %B %d at %I:%M %p IST")
+
+            calendar_result = {
+                "scheduled": True,
+                "is_simulation_only": True,
+                "has_conflict": False,
+                "title": "[SIMULATION PREVIEW ONLY] SmartCal Systems 60s Demo",
+                "meeting_link": "https://meet.google.com/sim-smartcal-preview",
+                "meeting_time": sim_slot_str,
+                "alternative_slots": []
+            }
+            event_scheduled = True
+            extracted["is_demo_simulation"] = True
+            extracted["email_type"] = "demo_simulation"
+        else:
+            # 7. Calendar Event Creation & VIP Auto-Bump Engine
+            vip_senders = [v.lower() for v in self.settings.get("vip_senders", [])]
+            vip_domains = [d.lower() for d in self.settings.get("vip_domains", [])]
+            sender_lower = email_msg.sender_email.lower()
+            sender_dom = sender_lower.split("@")[-1] if "@" in sender_lower else ""
+            is_vip = (sender_lower in vip_senders) or (sender_dom in vip_domains)
+
+            if extracted.get("is_meeting_request") and extracted.get("proposed_datetime"):
+                if is_vip:
+                    # Attempt VIP Auto-Bump over internal meetings
+                    bump_res = scheduler.bump_internal_meeting_for_vip(
+                        vip_email=email_msg.sender_email,
+                        vip_name=email_msg.sender_name,
+                        requested_start=extracted["proposed_datetime"],
+                        duration_minutes=extracted.get("duration_minutes", 45)
+                    )
+                    if bump_res.get("bumped"):
+                        event_scheduled = True
+                        calendar_result = {
+                            "scheduled": True,
+                            "has_conflict": False,
+                            "event": bump_res["vip_event"],
+                            "title": bump_res["vip_event"].title,
+                            "meeting_link": bump_res["vip_event"].meeting_link,
+                            "alternative_slots": [],
+                            "vip_bumped": True
+                        }
+                        self.audit_logger.log_vip_bump({
+                            "vip_email": email_msg.sender_email,
+                            "vip_name": email_msg.sender_name,
+                            "bumped_event": bump_res["bumped_event_title"],
+                            "rescheduled_to": bump_res["rescheduled_slot"]
+                        })
+                    elif bump_res.get("scheduled"):
+                        event_scheduled = True
+                        calendar_result = {
+                            "scheduled": True,
+                            "has_conflict": False,
+                            "event": bump_res["event"],
+                            "title": bump_res["event"].title,
+                            "meeting_link": bump_res["event"].meeting_link,
+                            "alternative_slots": []
+                        }
+                    else:
+                        calendar_result = scheduler.schedule_from_email_data(extracted, ecosystem=eco_name)
+                        event_scheduled = calendar_result.get("scheduled", False)
+                        has_conflict = calendar_result.get("has_conflict", False)
                 else:
                     calendar_result = scheduler.schedule_from_email_data(extracted, ecosystem=eco_name)
                     event_scheduled = calendar_result.get("scheduled", False)
                     has_conflict = calendar_result.get("has_conflict", False)
-            else:
-                calendar_result = scheduler.schedule_from_email_data(extracted, ecosystem=eco_name)
-                event_scheduled = calendar_result.get("scheduled", False)
-                has_conflict = calendar_result.get("has_conflict", False)
 
         # 8. Cross-Inbox Role Handoff & Response Drafting
         is_exec = any(kw in acc_label.lower() or kw in account_meta.get("email", "").lower() for kw in ["exec", "executive", "ceo", "director"])

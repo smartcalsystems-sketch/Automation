@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartCal Systems — 60-Second Autonomous Engine Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #070a12;
+      color: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    
+    .cinema-wrapper {
+      width: 100%;
+      max-width: 960px;
+      background: #0b0f19;
+      border: 1px solid #1f2937;
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Video Player Top Bar */
+    .cinema-topbar {
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cinema-dots {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    .cinema-brand {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .live-badge {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-size: 0.70rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 700;
+    }
+
+    /* Video Screen Viewport */
+    .cinema-viewport {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: radial-gradient(circle at 50% 20%, #151d30 0%, #0b0f19 80%);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Scene Container */
+    .scene {
+      position: absolute;
+      inset: 0;
+      padding: 36px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+      transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .scene.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* Scene Elements */
+    .scene-tag {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tag-blue { background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #93c5fd; }
+    .tag-amber { background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fcd34d; }
+    .tag-emerald { background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7; }
+    .tag-indigo { background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #c7d2fe; }
+
+    /* Scene 1: Gmail Card */
+    .email-card {
+      width: 100%;
+      max-width: 620px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 22px 24px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+      animation: floatSubtle 3s ease-in-out infinite;
+    }
+    .email-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .email-sender {
+      font-weight: 700;
+      color: #f9fafb;
+      font-size: 0.95rem;
+    }
+    .email-subject {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #60a5fa;
+      margin-bottom: 8px;
+    }
+    .email-body {
+      font-size: 0.92rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    .email-badge {
+      background: #ef4444;
+      color: white;
+      font-size: 0.70rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* Scene 2: Calendar Matrix */
+    .matrix-card {
+      width: 100%;
+      max-width: 680px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+    .matrix-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #f9fafb;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .cal-box {
+      background: #0b0f19;
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .cal-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .conflict-slot {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .locked-slot {
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid #10b981;
+      color: #6ee7b7;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.90rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.3);
+      animation: pulseGlow 1.8s infinite;
+    }
+
+    /* Scene 3: Google Meet Card */
+    .meet-card {
+      width: 100%;
+      max-width: 620px;
+      background: #111827;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+    .meet-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .meet-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+    .meet-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .meet-link {
+      background: #0b0f19;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.88rem;
+      margin: 12px 0;
+    }
+    .meet-meta {
+      font-size: 0.82rem;
+      color: #9ca3af;
+      line-height: 1.5;
+    }
+
+    /* Scene 4: Hero Zero-Call Funnel */
+    .funnel-card {
+      width: 100%;
+      max-width: 680px;
+      text-align: center;
+    }
+    .funnel-headline {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .funnel-subtitle {
+      font-size: 1rem;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+    .plan-pills {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .plan-pill {
+      background: #111827;
+      border: 1px solid #1f2937;
+      padding: 12px 18px;
+      border-radius: 12px;
+      text-align: left;
+      min-width: 160px;
+    }
+    .plan-pill.featured {
+      border: 2px solid #6366f1;
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.2) 0%, #111827 100%);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    }
+    .plan-pill-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+    }
+    .plan-pill-price {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 2px 0;
+    }
+    .plan-pill-desc {
+      font-size: 0.72rem;
+      color: #cbd5e1;
+    }
+
+    /* Video Player Controls */
+    .cinema-controls {
+      background: #111827;
+      border-top: 1px solid #1f2937;
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .progress-bar-wrap {
+      width: 100%;
+      height: 5px;
+      background: #1f2937;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6366f1 0%, #10b981 100%);
+      transition: width 0.1s linear;
+    }
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btn-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cinema-btn {
+      background: #0b0f19;
+      border: 1px solid #1f2937;
+      color: #e2e8f0;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.80rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .cinema-btn:hover {
+      background: #1f2937;
+      border-color: #6366f1;
+      color: #ffffff;
+    }
+    .cinema-btn.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #ffffff;
+    }
+    .scene-indicators {
+      display: flex;
+      gap: 6px;
+    }
+    .scene-dot-btn {
+      background: #0b0f19;
+      border: 1px solid #1f2937;
+      color: #9ca3af;
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .scene-dot-btn.active {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.25);
+      color: #ffffff;
+    }
+
+    .time-counter {
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: #9ca3af;
+    }
+
+    @keyframes floatSubtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 14px rgba(16, 185, 129, 0.3); }
+      50% { box-shadow: 0 0 24px rgba(16, 185, 129, 0.7); }
+    }
+
+    @media (max-width: 768px) {
+      .cinema-viewport { aspect-ratio: auto; min-height: 480px; }
+      .scene { padding: 20px; }
+      .funnel-headline { font-size: 1.6rem; }
+      .matrix-grid { grid-template-columns: 1fr; }
+      .scene-indicators { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cinema-wrapper">
+    <!-- Cinema Top Bar -->
+    <div class="cinema-topbar">
+      <div class="cinema-dots">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+      </div>
+      <div class="cinema-brand">
+        <span>SmartCal Systems • 60-Second Engine Showcase</span>
+        <span class="live-badge">⚡ Live Animation</span>
+      </div>
+      <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">100% Self-Serve</div>
+    </div>
+
+    <!-- Cinema Viewport -->
+    <div class="cinema-viewport" id="viewport">
+      
+      <!-- SCENE 1 (0-3s): Unread Inquiry -->
+      <div class="scene active" id="scene1">
+        <div class="scene-tag tag-blue">📩 Scene 1 (0.0s) • Inbound Client Inquiry</div>
+        <div class="email-card">
+          <div class="email-head">
+            <div>
+              <span class="email-sender">David Miller &lt;david.miller@enterprise.com&gt;</span>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">To: smartcal.systems@gmail.com</div>
+            </div>
+            <span class="email-badge">UNREAD</span>
+          </div>
+          <div class="email-subject">Sync on Q4 Partnership &amp; Integration</div>
+          <div class="email-body">
+            "Hi SmartCal Team,<br><br>
+            Could we schedule a 30-minute sync call tomorrow at <strong>3:00 PM</strong> to discuss API architecture and deliverables?<br><br>
+            Best,<br>David"
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 2 (3-6s): Cross-Calendar Scan & Conflict Detection -->
+      <div class="scene" id="scene2">
+        <div class="scene-tag tag-amber">⚡ Scene 2 (0.4s) • Multi-Calendar Conflict Resolution</div>
+        <div class="matrix-card">
+          <div class="matrix-title">
+            <span>Dual Calendar Availability Engine</span>
+            <span style="font-size: 0.75rem; color: #f59e0b;">Scanned in 0.4s</span>
+          </div>
+          <div class="matrix-grid">
+            <div class="cal-box">
+              <div class="cal-name">📅 Google Workspace Calendar</div>
+              <div class="conflict-slot">⚠️ 3:00 PM: Executive Strategy Review</div>
+              <div style="font-size: 0.75rem; color: #ef4444; font-weight: 600;">Conflict Detected at 3:00 PM</div>
+            </div>
+            <div class="cal-box">
+              <div class="cal-name">📅 Microsoft 365 Calendar</div>
+              <div class="conflict-slot">⚠️ 3:00 PM: Client Support Escalation</div>
+              <div style="font-size: 0.75rem; color: #ef4444; font-weight: 600;">Double-Booking Avoided</div>
+            </div>
+          </div>
+          <div style="margin-top: 14px;">
+            <div class="locked-slot">
+              <span>✅</span>
+              <div>
+                <strong>NEXT OPEN SLOT LOCKED: Tomorrow at 4:00 PM IST</strong><br>
+                <span style="font-size: 0.75rem; color: #a7f3d0; font-weight: 500;">Zero overlap across all connected Google and M365 calendars.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 3 (6-9s): Instant Meet & MoM Dispatch -->
+      <div class="scene" id="scene3">
+        <div class="scene-tag tag-emerald">🚀 Scene 3 (&lt; 60s) • Autonomous Invite &amp; MoM Dispatch</div>
+        <div class="meet-card">
+          <div class="meet-header">
+            <div class="meet-icon">📹</div>
+            <div>
+              <div class="meet-title">Confirmed: SmartCal Systems Consultation</div>
+              <div style="font-size: 0.78rem; color: #34d399;">Tomorrow at 4:00 PM IST (30 mins)</div>
+            </div>
+          </div>
+          <div class="meet-link">
+            Google Meet: https://meet.google.com/sim-smartcal-preview
+          </div>
+          <div class="meet-meta">
+            • Attendees: <code>david.miller@enterprise.com</code>, <code>smartcal.systems@gmail.com</code><br>
+            • Pre-Meeting Context Dossier &amp; Agenda autonomously attached.<br>
+            • Dispatched via SMTP in 48 seconds with <strong>zero human typing</strong>.
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 4 (9-12s): Zero Calls Needed Funnel -->
+      <div class="scene" id="scene4">
+        <div class="scene-tag tag-indigo">👑 Scene 4 • 100% Zero-Call Autonomous Funnel</div>
+        <div class="funnel-card">
+          <h2 class="funnel-headline">Zero Sales Calls Needed</h2>
+          <p class="funnel-subtitle">
+            Activate SmartCal Systems on your Google Workspace or Microsoft 365 inbox in 2 minutes:
+          </p>
+
+          <div class="plan-pills">
+            <div class="plan-pill">
+              <div class="plan-pill-name">Plan 1: Free Trial</div>
+              <div class="plan-pill-price">₹0</div>
+              <div class="plan-pill-desc">48-Hour Full Access</div>
+            </div>
+            <div class="plan-pill featured">
+              <div class="plan-pill-name" style="color: #c7d2fe;">Plan 2: Solo Setup</div>
+              <div class="plan-pill-price" style="color: #a5b4fc;">₹2,999</div>
+              <div class="plan-pill-desc" style="color: #e0e7ff;">Lifetime 1 Inbox • UPI</div>
+            </div>
+            <div class="plan-pill">
+              <div class="plan-pill-name">Plan 3: Agency Pro</div>
+              <div class="plan-pill-price">₹6,999</div>
+              <div class="plan-pill-desc">Up to 5 Inboxes</div>
+            </div>
+          </div>
+
+          <div style="font-size: 0.82rem; color: #94a3b8;">
+            Signatory VPA: <code style="color: #38bdf8; font-weight: 700;">7483218482@ibl</code> • Instant Activation
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Cinema Bottom Controls -->
+    <div class="cinema-controls">
+      <div class="progress-bar-wrap" id="progressBarWrap">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+      </div>
+      
+      <div class="control-row">
+        <div class="btn-controls">
+          <button class="cinema-btn" id="playBtn">⏸ Pause</button>
+          <button class="cinema-btn" id="replayBtn">↺ Replay</button>
+          <span class="time-counter" id="timeCounter">00:00 / 00:12</span>
+        </div>
+
+        <div class="scene-indicators">
+          <button class="scene-dot-btn active" onclick="jumpToScene(0)">1. Inbound</button>
+          <button class="scene-dot-btn" onclick="jumpToScene(1)">2. Conflict</button>
+          <button class="scene-dot-btn" onclick="jumpToScene(2)">3. Dispatch</button>
+          <button class="scene-dot-btn" onclick="jumpToScene(3)">4. Zero-Call</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_DURATION = 12000; // 12 seconds loop
+    const SCENE_DURATION = 3000;  // 3 seconds per scene
+    let startTime = Date.now();
+    let isPlaying = true;
+    let elapsedBeforePause = 0;
+
+    const scenes = [
+      document.getElementById('scene1'),
+      document.getElementById('scene2'),
+      document.getElementById('scene3'),
+      document.getElementById('scene4')
+    ];
+    const dotButtons = document.querySelectorAll('.scene-dot-btn');
+    const progressBar = document.getElementById('progressBarFill');
+    const timeCounter = document.getElementById('timeCounter');
+    const playBtn = document.getElementById('playBtn');
+    const replayBtn = document.getElementById('replayBtn');
+
+    function update() {
+      if (!isPlaying) return;
+
+      const elapsedTotal = elapsedBeforePause + (Date.now() - startTime);
+      const currentLoopTime = elapsedTotal % TOTAL_DURATION;
+
+      // Update progress bar
+      const progressPct = (currentLoopTime / TOTAL_DURATION) * 100;
+      progressBar.style.width = progressPct + '%';
+
+      // Update time counter
+      const seconds = Math.floor(currentLoopTime / 1000);
+      timeCounter.textContent = `00:${seconds < 10 ? '0' : ''}${seconds} / 00:12`;
+
+      // Determine active scene
+      const activeIdx = Math.min(3, Math.floor(currentLoopTime / SCENE_DURATION));
+      scenes.forEach((sc, i) => {
+        if (i === activeIdx) {
+          sc.classList.add('active');
+        } else {
+          sc.classList.remove('active');
+        }
+      });
+
+      dotButtons.forEach((btn, i) => {
+        if (i === activeIdx) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      requestAnimationFrame(update);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        isPlaying = false;
+        elapsedBeforePause += Date.now() - startTime;
+        playBtn.textContent = '▶ Play';
+      } else {
+        isPlaying = true;
+        startTime = Date.now();
+        playBtn.textContent = '⏸ Pause';
+        requestAnimationFrame(update);
+      }
+    });
+
+    replayBtn.addEventListener('click', () => {
+      elapsedBeforePause = 0;
+      startTime = Date.now();
+      if (!isPlaying) {
+        isPlaying = true;
+        playBtn.textContent = '⏸ Pause';
+      }
+      requestAnimationFrame(update);
+    });
+
+    function jumpToScene(idx) {
+      elapsedBeforePause = idx * SCENE_DURATION;
+      startTime = Date.now();
+      if (!isPlaying) {
+        isPlaying = true;
+        playBtn.textContent = '⏸ Pause';
+        requestAnimationFrame(update);
+      }
+    }
+
+    document.getElementById('progressBarWrap').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = clickX / rect.width;
+      elapsedBeforePause = pct * TOTAL_DURATION;
+      startTime = Date.now();
+      if (!isPlaying) {
+        isPlaying = true;
+        playBtn.textContent = '⏸ Pause';
+        requestAnimationFrame(update);
+      }
+    });
+
+    requestAnimationFrame(update);
+  </script>
+</body>
+</html>
